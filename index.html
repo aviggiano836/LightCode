@@ -16,7 +16,7 @@ header {
   font-size: 8vh;
 }
 header img {
-  height: 45vh;
+  height: 60vh;
 }
 #content {
   width: 50vw;
@@ -24,12 +24,12 @@ header img {
   margin-right: auto;
 
 }
-
 .flex-center{
   display: flex;
   justify-content: center;
 
 }
+
 </style>
 </head>
 <body>
@@ -39,6 +39,9 @@ header img {
   <div id="content">
   <h1>What is LightCode?</h1>
     <p>Want to learn how to program? Check out this simple and cool modular lights project! We wanted to do something involving hardware and make something that would encourage people, especially children and teens, to learn how to code. But really, LightCode is a great project for everyone!</p>
+  <h1>Demo Video</h1>
+  <p>Here's an example of code that turns a single flower light on when it's dark, and turns it off when the sun's out!</p>
+  <iframe width="560" height="315" src="https://www.youtube.com/embed/sbjNLAihfJ0" frameborder="0" allowfullscreen></iframe>
   <h1>Programming</h1>
     <img src="./scratch.jpg">
     <p>LightCode uses a visual drag-and-drop programming language based off of MIT's Scratch language.</p>
@@ -64,6 +67,12 @@ header img {
   <p>More coming soon!</p>
   <h1>Sensors</h1>
     <p>Modular design allows you to mix and match different lights and sensors to fulfil your creative needs!</p>
+    <div>
+      <img class="sensor" src="./light-sensor-leaf.png">
+      <p>A simple light sensor using a photoresistor.</p>
+      <img class ="sensor" src="./temp-sensor-leaf.png">
+      <p>A temperature sensor using the i2c protocol.</p>
+    </div>
   <h1>Tutorials</h1>
     <p>Coming soon!</p>
   </div>
