@@ -15,6 +15,7 @@ import javafx.scene.input.MouseDragEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.PopupWindow;
 import javafx.stage.Stage;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -25,6 +26,8 @@ import java.awt.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
+
+import static java.lang.Integer.parseInt;
 
 public class gui extends Application {
     private final static int window_height = 800;
@@ -72,7 +75,7 @@ public class gui extends Application {
         b.setBackground(new Background(new BackgroundFill(Color.CORAL, CornerRadii.EMPTY,
                 Insets.EMPTY)));
         b.setOnMouseClicked((MouseEvent me) -> {
-            writeCode();
+            writeFile();
         });
         return b;
     }
@@ -88,35 +91,55 @@ public class gui extends Application {
         if (code.size() == 0) {
             return new ArrayList<>();
         }
+        int lastport = 0;
+
         ArrayList<String> block = new ArrayList<>();
+        block.add("#include <Adafruit_NeoPixel.h>");
+        block.add("      #define PIN 7");
+        block.add("//Parameter 1 = number of pixels");
+        block.add("//Parameter 2 = pin number");
+        block.add("//Parameter 3 = pixel type flags");
+        block.add("Adafruit_NeoPixel strip = Adafruit_NeoPixel(2, PIN, NEO_GRB + NEO_KHZ800);");
+        block.add("void setup() {");
+        block.add("  strip.begin();");
+        block.add("  strip.show();");
+        block.add("}");
+        block.add("");
+        block.add("void loop() {");
+        block.add("//YOUR CODE");
+
+
         for (i = 0; i < code.size(); i++) {
             StackPane s = code.get(i);
             String com = s.getAccessibleText();
-            if (com.equals("Set_Flower")) {
+            if (com.equals("Set Flower #")) {
+                String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
+                lastport = parseInt(number);
+                block.add("strip.setPixelColor(" + number + ", 200, 200, 200);");
+            } else if (com.equals("Show for ")) {
+                String time = ((TextField) ((HBox)s.getChildren().get(1)).getChildren().get(1)).getText();
+                        block.add("delay(" + time + ");");
+                        block.add("strip.setPixelColor(" + lastport + ", 0, 0, 0, 0)");
+            } else if (com.equals("If ") || (com.equals("While "))) {
+                String sensor = ((String)((ComboBox)((HBox) s.getChildren().get(0)).getChildren().get(0)).getValue());
+                String number = ((TextField)((HBox) s.getChildren().get(0)).getChildren().get(1)).getText();
+                String condition = ((String)((ComboBox)((HBox) s.getChildren().get(0)).getChildren().get(3)).getValue());
+                block.add(com + "analogRead(0)" + condition + number + "){");
+                    while(s.getTranslateX() < s.getLayoutY()){
 
-            } else if (com.equals("Drop")) {
-
-            } else if (com.equals("Eat_Crumb")) {
-
-            } else if (com.equals("Drop_Crumb")) {
-
-            } else if (com.equals("Turn ")){
-                ComboBox c = (ComboBox) ((HBox) s.getChildren().get(1)).getChildren().get(1);
-
-            } else if (com.equals("While ")) {
-
-            } else if (com.equals("If ")) {
-
-            } else if (com.equals("If_Crumb")) {
-
-            } else if (com.equals("Repeat ")) {
-
-            } else if (com.equals("Do Nothing")) {
-
-            } else if (com.equals("Halt")) {
-
+                    }
+                block.add("}");
+            } else if (com.equals("Else ")) {
+                block.add("Else {");
+                block.add("}");
+            } else if (com.equals("For ")) {
+                String number = ((TextField) s.getChildren().get(3)).getText();
+                block.add("for(int i = 0; i < " + number + "; i++){");
+                block.add("}");
             }
         }
+        block.add("}");
+        block.add("}");
         return block;
     }
 
@@ -126,16 +149,19 @@ public class gui extends Application {
      *
      * writes each ProgNode in the ArrayList, block, to the specified path
      */
-    public void writeFile() throws IOException {
+    public void writeFile(){
         ArrayList<String> block = writeCode();
         if (block == null) {     //checks is the block has been returned as null, block is null when an error occurs
             return;             //skips the function to not write the file, file should not be written due to error
         }
-        FileWriter file = new FileWriter("lightcode.ino");
-        for (String node : block) {
-            file.write(node);
+         try(FileWriter file = new FileWriter("lightcode.ino");) {
+             for (String node : block) {
+                 file.write(node + "\n");
+             }
+             file.close();
+         } catch (IOException e){
+             System.out.println("Error, File name invalid");
         }
-        file.close();
     }
 
     /***
@@ -224,26 +250,6 @@ public class gui extends Application {
         popup.show();
     }
 
-    /***
-     * opens a fileChooser for the user to pick the file and filepath to save their code to
-     *      calls writeFile with the chosen FilePath
-     *      handles the IOException
-     */
-    public void getFilepath() {
-        final Stage popup = new Stage();
-        popup.initOwner(primaryStage);
-        final JFileChooser chooser = new JFileChooser();
-        int n = JFileChooser.OPEN_DIALOG;
-        int m = JFileChooser.SAVE_DIALOG;
-        int returnVal = chooser.showSaveDialog(null);
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
-            try {
-                writeFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
     /***
      *
@@ -255,9 +261,7 @@ public class gui extends Application {
         canvas.setFill(Color.LIGHTGRAY);
         commandSpace.setStroke(Color.GRAY);
         commandSpace.setFill(Color.DARKGRAY);
-        /*--------------------------------------------------------------------------------------------------*/
-        /*-------------------ComboBoxes and their array lists and observable lists--------------------------*/
-        // list of all possible directions
+         // list of all possible directions
         /*-----------------------------------------------------------------------------------*/
         /*------------------------------------COMMANDS---------------------------------------*/
         final Rectangle inner = new Rectangle(rect_width, rect_height);
@@ -286,23 +290,23 @@ public class gui extends Application {
         ifBlock.setAccessibleText("If ");
         startY += rect_height;
 
-        final StackPane elseBlock = makeBlock("Else", Color.CORNFLOWERBLUE, rect_width, rect_height);
+        final StackPane elseBlock = makeBlock("Else ", Color.CORNFLOWERBLUE, rect_width, rect_height);
         elseBlock.setTranslateX(startX);
         elseBlock.setTranslateY(startY);
-        elseBlock.setAccessibleText("Else");
+        elseBlock.setAccessibleText("Else ");
         startY += rect_height;
 
         final StackPane whileBlock = makeIfBlock("While ", Color.LIGHTBLUE, rect_width, rect_height);
         whileBlock.setTranslateX(startX);
         whileBlock.setTranslateY(startY);
-        whileBlock.setAccessibleText("While");
+        whileBlock.setAccessibleText("While ");
         startY += rect_height;
 
 
         final StackPane forBlock = makeNumberBlock("For ", Color.DEEPSKYBLUE, rect_width, rect_height, "times");
         forBlock.setTranslateX(startX);
         forBlock.setTranslateY(startY);
-        forBlock.setAccessibleText("For");
+        forBlock.setAccessibleText("For ");
         startY += rect_height;
 
 
