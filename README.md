@@ -5,7 +5,7 @@ _Lighting the way to teach programming_
 
 
 ## About project
-
+* [LightCode Website](https://aviggiano836.github.io/LightCode/)
 * [WiCHacks 2017](http://wichacks.rit.edu/) project submission
 * [DevPost project page](https://devpost.com/software/light-code)
 * [See a demo](https://youtu.be/sbjNLAihfJ0)
