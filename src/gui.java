@@ -1,6 +1,7 @@
 /**
  * Created by Ariel on 2/25/2017.
  */
+import com.sun.webkit.ColorChooser;
 import javafx.application.Application;
 import javafx.geometry.*;
 import javafx.geometry.Insets;
@@ -9,6 +10,8 @@ import javafx.scene.Cursor;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.input.MouseDragEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
@@ -18,6 +21,7 @@ import javafx.collections.ObservableList;
 import javafx.scene.paint.Color;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
@@ -25,8 +29,8 @@ import java.util.List;
 public class gui extends Application {
     private final static int window_height = 800;
     private final static int window_width = 1000;
-    private final static int rect_height = 40;
-    private final static int rect_width = 220;
+    private final static int rect_height = 60;
+    private final static int rect_width = 300;
     private final static int startX = 20;
     private int startY = 20;
     private final static int x = window_width - rect_width;
@@ -117,8 +121,7 @@ public class gui extends Application {
     }
 
     /***
-     * \
-     * @param filepath          takes in a String for the filepath to write the file
+     *
      * @throws IOException      throws IOException to getFilePath()
      *
      * writes each ProgNode in the ArrayList, block, to the specified path
@@ -235,7 +238,7 @@ public class gui extends Application {
         int returnVal = chooser.showSaveDialog(null);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             try {
-                writeFile(chooser.getSelectedFile().toString());
+                writeFile();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -255,33 +258,6 @@ public class gui extends Application {
         /*--------------------------------------------------------------------------------------------------*/
         /*-------------------ComboBoxes and their array lists and observable lists--------------------------*/
         // list of all possible directions
-        ArrayList<String> dir = new ArrayList<>();
-        dir.add("AHEAD");
-        dir.add("RIGHT");
-        dir.add("LEFT");
-        dir.add("BEHIND");
-
-        //list of all possible blocked and open access in all directions
-        //      included crumb and no crumb
-        ArrayList<String> access = new ArrayList<>();
-        for (String d : dir) {
-            access.add("OPEN " + d);
-        }
-        for (String d : dir) {
-            access.add("BLOCKED " + d);
-        }
-
-        // ComboBox for all possible directions
-        ObservableList<String> dirOpt = FXCollections.observableArrayList();
-        dirOpt.addAll(dir);
-
-        // all possible if statements, access available and blocked in all directions, crumb, no crumb
-        ObservableList<String> ifStatements = FXCollections.observableArrayList();
-        ifStatements.addAll(access);
-
-        ObservableList<String> numbers = FXCollections.observableArrayList("1", "2", "3", "4", "5", "6", "7",
-                "8", "9");
-
         /*-----------------------------------------------------------------------------------*/
         /*------------------------------------COMMANDS---------------------------------------*/
         final Rectangle inner = new Rectangle(rect_width, rect_height);
@@ -292,45 +268,45 @@ public class gui extends Application {
         forForever.setTranslateX(rect_width + 40);
         forForever.setTranslateY(0);
 
-        final StackPane setFlower = makeBlock("Set Flower", Color.DODGERBLUE, rect_width, rect_height);
+        final StackPane setFlower = makeSetFlowerBlock("Set Flower #", Color.DODGERBLUE, rect_width, rect_height);
         setFlower.setTranslateX(startX);
         setFlower.setTranslateY(startY);
         setFlower.setAccessibleText("Set_Flower");
         startY += rect_height;
 
-        final StackPane showFor = makeBlock("Show for ", Color.POWDERBLUE, rect_width, rect_height);
+        final StackPane showFor = makeNumberBlock("Show for ", Color.POWDERBLUE, rect_width, rect_height, "ms");
         showFor.setTranslateX(startX);
         showFor.setTranslateY(startY);
         showFor.setAccessibleText("Show_for");
         startY += rect_height;
 
-        final StackPane lightSensor = makeBlock("Light Sensor", Color.DEEPSKYBLUE, rect_width, rect_height);
-        lightSensor.setTranslateX(startX);
-        lightSensor.setTranslateY(startY);
-        lightSensor.setAccessibleText("Do_Nothing");
-        startY += rect_height;
-
-        final StackPane ifBlock = makeBlock("If ", Color.CORNFLOWERBLUE, rect_width, rect_height, ifStatements);
+        final StackPane ifBlock = makeIfBlock("If ", Color.CORNFLOWERBLUE, rect_width, rect_height);
         ifBlock.setTranslateX(startX);
         ifBlock.setTranslateY(startY);
         ifBlock.setAccessibleText("If ");
         startY += rect_height;
 
-        final StackPane whileBlock = makeBlock("While ", Color.LIGHTBLUE, rect_width, rect_height, ifStatements);
+        final StackPane elseBlock = makeBlock("Else", Color.CORNFLOWERBLUE, rect_width, rect_height);
+        elseBlock.setTranslateX(startX);
+        elseBlock.setTranslateY(startY);
+        elseBlock.setAccessibleText("Else");
+        startY += rect_height;
+
+        final StackPane whileBlock = makeIfBlock("While ", Color.LIGHTBLUE, rect_width, rect_height);
         whileBlock.setTranslateX(startX);
         whileBlock.setTranslateY(startY);
-        whileBlock.setAccessibleText("While ");
+        whileBlock.setAccessibleText("While");
         startY += rect_height;
 
 
-        final StackPane forBlock = makeBlock("For ", Color.DEEPSKYBLUE, rect_width, rect_height, numbers);
+        final StackPane forBlock = makeNumberBlock("For ", Color.DEEPSKYBLUE, rect_width, rect_height, "times");
         forBlock.setTranslateX(startX);
         forBlock.setTranslateY(startY);
-        forBlock.setAccessibleText("For ");
+        forBlock.setAccessibleText("For");
         startY += rect_height;
 
 
-        group.getChildren().addAll(canvas, commandSpace, forForever, setFlower, showFor, lightSensor, ifBlock,
+        group.getChildren().addAll(canvas, commandSpace, forForever, setFlower, showFor, ifBlock, elseBlock,
                 whileBlock, forBlock);
         return group;
     }
@@ -374,38 +350,136 @@ public class gui extends Application {
      * @param color             the color of the StackPane
      * @param width             the width of the StackPane
      * @param height            the height of the StackPane
+     * @return a StackPane, holding the command String and a ComboBox, with the color as a background,
+     *                              with the specified width and height
+     *                              onMouseClick the StackPane will make a draggable StackPane with the same parameters
+     *                              and adds it to the group
+     */
+    private StackPane makeSetFlowerBlock(final String command, final Color color, final int
+            width, final int height) {
+        final Rectangle inner = new Rectangle(width, height);
+        inner.setFill(color);
+        inner.setStroke(color.darker());
+        final StackPane rect = new StackPane();
+
+        final TextField text = new TextField();
+            text.setMaxWidth(50);
+            text.setEditable(false);
+        final ColorPicker colorPicker = new ColorPicker();
+            colorPicker.setMaxWidth(100);
+            colorPicker.setDisable(true);
+
+        HBox label = new HBox();
+        label.setAlignment(Pos.CENTER);
+        label.getChildren().addAll(new Label(command), text, colorPicker);
+        rect.getChildren().addAll(inner, label);
+
+        // sets cursor over rectangle to hand
+        rect.setCursor(Cursor.HAND);
+        //sets cursor over text to hand
+        text.setCursor(Cursor.HAND);
+        //sets cursor over colorchooser to hand
+        colorPicker.setCursor(Cursor.HAND);
+        rect.setOnMousePressed((MouseEvent me) -> {
+            // change of mouse's x and y values
+            final StackPane com = makeSetFlowerRect(command, color, width, height);
+            com.setTranslateX(x);
+            com.setTranslateY(y);
+            com.setAccessibleText(command);
+            group.getChildren().add(com);
+        });
+        return rect;
+    }
+
+    /***
+     *
+     * @param command           a String representing the command
+     * @param color             the color of the StackPane
+     * @param width             the width of the StackPane
+     * @param height            the height of the StackPane
      * @param combo             the list of options for a ComboBox
      * @return a StackPane, holding the command String and a ComboBox, with the color as a background,
      *                              with the specified width and height
      *                              onMouseClick the StackPane will make a draggable StackPane with the same parameters
      *                              and adds it to the group
      */
-    private StackPane makeBlock(final String command, final Color color, final int
-            width, final int height, final ObservableList combo) {
+    private StackPane makeNumberBlock(final String command, final Color color, final int
+            width, final int height, String placeholder) {
         final Rectangle inner = new Rectangle(width, height);
         inner.setFill(color);
         inner.setStroke(color.darker());
         final StackPane rect = new StackPane();
 
-        final ComboBox comboBox = new ComboBox(combo);
-        comboBox.setBackground(new Background(new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY,
-                Insets.EMPTY)));
-        comboBox.setPromptText("pick a statement");
+        final TextField text = new TextField();
+        text.setMaxWidth(50);
+        text.setPromptText(placeholder);
+        text.setEditable(false);
 
         HBox label = new HBox();
         label.setAlignment(Pos.CENTER);
-        label.getChildren().addAll(new Label(command), comboBox);
+        label.getChildren().addAll(new Label(command), text);
         rect.getChildren().addAll(inner, label);
 
         // sets cursor over rectangle to hand
         rect.setCursor(Cursor.HAND);
+        //sets cursor over text to hand
+        text.setCursor(Cursor.HAND);
         rect.setOnMousePressed((MouseEvent me) -> {
             // change of mouse's x and y values
-            final ComboBox newCombo = new ComboBox(combo);
-            newCombo.setBackground(new Background(new BackgroundFill(Color.WHITESMOKE, CornerRadii.EMPTY,
-                    Insets.EMPTY)));
-            newCombo.setPromptText("pick a statement");
-            final StackPane com = makeRect(command, color, width, height, newCombo);
+            final StackPane com = makeNumberRect(command, color, width, height, placeholder);
+            com.setTranslateX(x);
+            com.setTranslateY(y);
+            com.setAccessibleText(command);
+            group.getChildren().add(com);
+        });
+        return rect;
+    }
+
+    /***
+     *
+     * @param command           a String representing the command
+     * @param color             the color of the StackPane
+     * @param width             the width of the StackPane
+     * @param height            the height of the StackPane
+     * @param combo             the list of options for a ComboBox
+     * @return a StackPane, holding the command String and a ComboBox, with the color as a background,
+     *                              with the specified width and height
+     *                              onMouseClick the StackPane will make a draggable StackPane with the same parameters
+     *                              and adds it to the group
+     */
+    private StackPane makeIfBlock(final String command, final Color color, final int
+            width, final int height) {
+        final Rectangle inner = new Rectangle(width, height);
+        inner.setFill(color);
+        inner.setStroke(color.darker());
+        final StackPane rect = new StackPane();
+
+        final TextField text = new TextField();
+        text.setMaxWidth(50);
+        text.setEditable(false);
+
+        ComboBox sensors = new ComboBox();
+        sensors.getItems().addAll("Light", "Heat");
+        sensors.setPromptText("Sensor");
+        sensors.setDisable(true);
+
+        ComboBox conditions = new ComboBox();
+        conditions.getItems().addAll(">", "=", "<");
+        conditions.setPromptText("Sign");
+        conditions.setDisable(true);
+
+        HBox label = new HBox();
+        label.setAlignment(Pos.CENTER);
+        label.getChildren().addAll(new Label(command), sensors, conditions, text);
+        rect.getChildren().addAll(inner, label);
+
+        // sets cursor over rectangle to hand
+        rect.setCursor(Cursor.HAND);
+        //sets cursor over text to hand
+        text.setCursor(Cursor.HAND);
+        rect.setOnMousePressed((MouseEvent me) -> {
+            // change of mouse's x and y values
+            final StackPane com = makeIfRect(command, color, width, height);
             com.setTranslateX(x);
             com.setTranslateY(y);
             com.setAccessibleText(command);
@@ -493,6 +567,255 @@ public class gui extends Application {
      * @return a draggable StackPane holding the command String and a ComboBox, with the color as a
      *                              background, with the specified width and height, and adds it the code list
      */
+    private StackPane makeSetFlowerRect(final String command, final Color color, final int
+            width, final int height) {
+
+        final Rectangle inner = new Rectangle(width, height);
+        inner.setFill(color);
+        inner.setStroke(color.darker());
+        final StackPane rect = new StackPane();
+        HBox label = new HBox();
+        label.setAlignment(Pos.CENTER);
+
+        final TextField text = new TextField();
+        text.setMaxWidth(50);
+        final ColorPicker colorPicker = new ColorPicker();
+        colorPicker.setMaxWidth(100);
+
+        label.getChildren().addAll(new Label(command), text, colorPicker);
+        rect.getChildren().addAll(inner, label);
+
+        // sets cursor over rectangle to hand
+        rect.setCursor(Cursor.HAND);
+        //sets cursor over text to hand
+        text.setCursor(Cursor.HAND);
+        //sets cursor over colorchooser to hand
+        colorPicker.setCursor(Cursor.HAND);
+        rect.setOnMouseDragged((MouseEvent me) -> {
+            current = rect;
+            // change of mouse's x and y values
+            double dragX = me.getSceneX() - dragAnchor.getX();
+            double dragY = me.getSceneY() - dragAnchor.getY();
+
+            double newXPosition = initX + dragX; // delta of rectangle
+            newXPosition -= newXPosition % tick; // coarse movement "snap2grid"
+            double newYPosition = initY + dragY; // delta of rectangle
+            newYPosition -= newYPosition % tick; // coarse movement "snap2grid"
+
+            // check that the rectangle is not moving outside the bounds of the window before
+            //      changing the rectangles position
+            if ((newXPosition >= (rect_width + 40)) &&
+                    (newXPosition <= (window_width - width))) {
+                rect.setTranslateX(newXPosition);
+            }
+            if ((newYPosition >= 0) &&
+                    (newYPosition <= window_height - height)) {
+                rect.setTranslateY(newYPosition);
+            }
+        });
+
+        rect.setOnMousePressed((MouseEvent me) -> {
+            //stores initial x and y value of the x for the next time the rectangle is dragged
+            current = rect;
+            initX = rect.getTranslateX();
+            initY = rect.getTranslateY();
+            dragAnchor = new Point2D(
+                    me.getSceneX(), me.getSceneY()
+            );
+        });
+
+        rect.setOnMouseReleased((MouseEvent me) -> {
+            current = null;
+        });
+
+        rect.setOnMouseDragOver((MouseEvent me) -> {
+            rect.setOnMouseReleased((MouseEvent mouseEvent) -> {
+                if (current != null){
+                    current.setTranslateY(rect.getTranslateY() + rect_height);
+                    current.setTranslateX(rect.getTranslateX() + 20);
+                }
+            });
+        });
+        code.add(rect);
+        return rect;
+    }
+
+    /***
+     *
+     * @param command           a String representing the command
+     * @param color             the color of the StackPane
+     * @param width             the width of the StackPane
+     * @param height            the height of the StackPane
+     * @param comboBox
+     * @return a draggable StackPane holding the command String and a ComboBox, with the color as a
+     *                              background, with the specified width and height, and adds it the code list
+     */
+    private StackPane makeNumberRect(final String command, final Color color, final int
+            width, final int height, String placeholder) {
+
+        final Rectangle inner = new Rectangle(width, height);
+        inner.setFill(color);
+        inner.setStroke(color.darker());
+        final StackPane rect = new StackPane();
+        HBox label = new HBox();
+        label.setAlignment(Pos.CENTER);
+
+        final TextField text = new TextField();
+        text.setMaxWidth(50);
+        text.setPromptText(placeholder);
+
+        label.getChildren().addAll(new Label(command), text);
+        rect.getChildren().addAll(inner, label);
+
+        // sets cursor over rectangle to hand
+        rect.setCursor(Cursor.HAND);
+        //sets cursor over text to hand
+        text.setCursor(Cursor.HAND);
+        rect.setOnMouseDragged((MouseEvent me) -> {
+            current = rect;
+            // change of mouse's x and y values
+            double dragX = me.getSceneX() - dragAnchor.getX();
+            double dragY = me.getSceneY() - dragAnchor.getY();
+
+            double newXPosition = initX + dragX; // delta of rectangle
+            newXPosition -= newXPosition % tick; // coarse movement "snap2grid"
+            double newYPosition = initY + dragY; // delta of rectangle
+            newYPosition -= newYPosition % tick; // coarse movement "snap2grid"
+
+            // check that the rectangle is not moving outside the bounds of the window before
+            //      changing the rectangles position
+            if ((newXPosition >= (rect_width + 40)) &&
+                    (newXPosition <= (window_width - width))) {
+                rect.setTranslateX(newXPosition);
+            }
+            if ((newYPosition >= 0) &&
+                    (newYPosition <= window_height - height)) {
+                rect.setTranslateY(newYPosition);
+            }
+        });
+
+        rect.setOnMousePressed((MouseEvent me) -> {
+            //stores initial x and y value of the x for the next time the rectangle is dragged
+            current = rect;
+            initX = rect.getTranslateX();
+            initY = rect.getTranslateY();
+            dragAnchor = new Point2D(
+                    me.getSceneX(), me.getSceneY()
+            );
+        });
+
+        rect.setOnMouseReleased((MouseEvent me) -> {
+            current = null;
+        });
+
+        rect.setOnMouseDragOver((MouseEvent me) -> {
+            rect.setOnMouseReleased((MouseEvent mouseEvent) -> {
+                if (current != null){
+                    current.setTranslateY(rect.getTranslateY() + rect_height);
+                    current.setTranslateX(rect.getTranslateX() + 20);
+                }
+            });
+        });
+        code.add(rect);
+        return rect;
+    }
+
+
+    /***
+     *
+     * @param command           a String representing the command
+     * @param color             the color of the StackPane
+     * @param width             the width of the StackPane
+     * @param height            the height of the StackPane
+     * @param comboBox
+     * @return a draggable StackPane holding the command String and a ComboBox, with the color as a
+     *                              background, with the specified width and height, and adds it the code list
+     */
+    private StackPane makeIfRect(final String command, final Color color, final int
+            width, final int height) {
+        final Rectangle inner = new Rectangle(width, height);
+        inner.setFill(color);
+        inner.setStroke(color.darker());
+        final StackPane rect = new StackPane();
+        HBox label = new HBox();
+        label.setAlignment(Pos.CENTER);
+
+        final TextField text = new TextField();
+        text.setMaxWidth(50);
+        ComboBox sensors = new ComboBox();
+        sensors.getItems().addAll("Light", "Heat");
+        sensors.setPromptText("sensor");
+        ComboBox conditions = new ComboBox();
+        conditions.getItems().addAll(">", "=", "<");
+        conditions.setPromptText("sign");
+
+        label.getChildren().addAll(new Label(command), sensors, conditions, text);
+        rect.getChildren().addAll(inner, label);
+
+        // sets cursor over rectangle to hand
+        rect.setCursor(Cursor.HAND);
+        //sets cursor over text to hand
+        text.setCursor(Cursor.HAND);
+        rect.setOnMouseDragged((MouseEvent me) -> {
+            current = rect;
+            // change of mouse's x and y values
+            double dragX = me.getSceneX() - dragAnchor.getX();
+            double dragY = me.getSceneY() - dragAnchor.getY();
+
+            double newXPosition = initX + dragX; // delta of rectangle
+            newXPosition -= newXPosition % tick; // coarse movement "snap2grid"
+            double newYPosition = initY + dragY; // delta of rectangle
+            newYPosition -= newYPosition % tick; // coarse movement "snap2grid"
+
+            // check that the rectangle is not moving outside the bounds of the window before
+            //      changing the rectangles position
+            if ((newXPosition >= (rect_width + 40)) &&
+                    (newXPosition <= (window_width - width))) {
+                rect.setTranslateX(newXPosition);
+            }
+            if ((newYPosition >= 0) &&
+                    (newYPosition <= window_height - height)) {
+                rect.setTranslateY(newYPosition);
+            }
+        });
+
+        rect.setOnMousePressed((MouseEvent me) -> {
+            //stores initial x and y value of the x for the next time the rectangle is dragged
+            current = rect;
+            initX = rect.getTranslateX();
+            initY = rect.getTranslateY();
+            dragAnchor = new Point2D(
+                    me.getSceneX(), me.getSceneY()
+            );
+        });
+
+        rect.setOnMouseReleased((MouseEvent me) -> {
+            current = null;
+        });
+
+        rect.setOnMouseDragOver((MouseEvent me) -> {
+            rect.setOnMouseReleased((MouseEvent mouseEvent) -> {
+                if (current != null){
+                    current.setTranslateY(rect.getTranslateY() + rect_height);
+                    current.setTranslateX(rect.getTranslateX() + 20);
+                }
+            });
+        });
+        code.add(rect);
+        return rect;
+    }
+
+
+    /***
+     *
+     * @param command           a String representing the command
+     * @param color             the color of the StackPane
+     * @param width             the width of the StackPane
+     * @param height            the height of the StackPane
+     * @param comboBox
+     * @return a draggable StackPane holding the command String and a ComboBox, with the color as a
+     *                              background, with the specified width and height, and adds it the code list
+     */
     private StackPane makeRect(final String command, final Color color, final int
             width, final int height, final ComboBox comboBox) {
 
@@ -553,42 +876,10 @@ public class gui extends Application {
                 }
             });
         });
-        //sets cursor over comboBox to hand
-        comboBox.setCursor(Cursor.HAND);
-        comboBox.setOnMouseDragged((MouseEvent me) -> {
-            // change of mouse's x and y values
-            double dragX = me.getSceneX() - dragAnchor.getX();
-            double dragY = me.getSceneY() - dragAnchor.getY();
-
-            //new x and y values of the rectangle
-            double newXPosition = initX + dragX;
-            newXPosition -= newXPosition % tick;
-            double newYPosition = initY + dragY;
-            newYPosition -= newYPosition % tick;
-            // check that the rectangle is not moving outside the bounds of the window before
-            //      changing the rectangles position
-            if ((newXPosition >= 0) &&
-                    (newXPosition <= window_width - width)) {
-                rect.setTranslateX(newXPosition);
-            }
-            if ((newYPosition >= 0) &&
-                    (newYPosition <= window_height - height)) {
-                rect.setTranslateY(newYPosition);
-            }
-        });
-
-        comboBox.setOnMousePressed((MouseEvent me) -> {
-            //stores initial x and y value of the x for the next time the rectangle is dragged
-            initX = rect.getTranslateX();
-            initY = rect.getTranslateY();
-            dragAnchor = new Point2D(
-                    me.getSceneX(), me.getSceneY()
-            );
-        });
-
         code.add(rect);
         return rect;
     }
+
 }
 
 /***
