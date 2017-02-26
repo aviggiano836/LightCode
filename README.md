@@ -34,4 +34,4 @@ For the hardware/electronics, we prototyped our modular product using a 4-strand
 
 ## License
 
-To be determined!
+GPLv3
