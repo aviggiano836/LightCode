@@ -11,7 +11,5 @@ void setup() {
 
 void loop() {
 //YOUR CODE
-If analogRead(0)null){
-}
 }
 }

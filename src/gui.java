@@ -49,11 +49,11 @@ public class gui extends Application {
     private double initX;
     private Point2D dragAnchor;
     private int i;
-    private int lastport;
+    private int lastPort;
     private StackPane current;
 
     @Override
-    /***
+    /**
      * calls all necessary functions to set the stage
      */
     public void start(Stage primaryStage) throws Exception {
@@ -90,11 +90,11 @@ public class gui extends Application {
      */
     private ArrayList<String> writeCode() {
         code.sort(new commandComparator());
-        if (code.size() == 0) {
-            return new ArrayList<>();
+        if (code.isEmpty()) {
+            errorPopup("Please write your code, for instructions open the READ_ME file");
         }
 
-        ArrayList<String> block = new ArrayList<>();
+        block = new ArrayList<>();
         block.add("#include <Adafruit_NeoPixel.h>");
         block.add("      #define PIN 7");
         block.add("//Parameter 1 = number of pixels");
@@ -109,113 +109,57 @@ public class gui extends Application {
         block.add("void loop() {");
         block.add("//YOUR CODE");
 
+        getCodeBlock(code);
 
-        for (i = 0; i < code.size(); i++) {
-            StackPane s = code.get(i);
-            String com = s.getAccessibleText();
-            if (com.equals("Set Flower #")) {
-                String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
-                if (number == null){
-                    errorPopup("Please put in the number flower you wish to set");
-                }
-                lastport = parseInt(number) - 1;
-                block.add("strip.setPixelColor(" + lastport + ", 200, 200, 200);");
-            } else if (com.equals("Show for ")) {
-                String time = ((TextField) ((HBox)s.getChildren().get(1)).getChildren().get(1)).getText();
-                if (time == null){
-                    errorPopup("Please put in a time for the \"Show for\" Block");
-                }
-                block.add("delay(" + time + ");");
-                block.add("strip.setPixelColor(" + lastport + ", 0, 0, 0, 0)");
-            } else if (com.equals("If ") || (com.equals("While "))) {
-                String sensors = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(1)).getValue());
-                String condition = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(2)).getValue());
-                String number = ((TextField)((HBox) s.getChildren().get(1)).getChildren().get(3)).getText();
-                if ((sensors == null) || (condition == null) || (number == null)){
-                    errorPopup("Please finish filling out " + com + "the block");
-                }
-                block.add(com + "(analogRead(0)" + condition + number + "){");
-                if (code.get(i+1).getAccessibleText().equals("Begin")){
-                    getCodeBlock(code.subList(i+2, code.size()));
-                } else {
-                    errorPopup("Please follow each If, While, and For statement by a \"Begin\" block");
-                }
-                block.add("}");
-            } else if (com.equals("Else ")) {
-                block.add("Else {");
-                block.add("}");
-            } else if (com.equals("For ")) {
-                String number = ((TextField) s.getChildren().get(3)).getText();
-                if (number == null){
-                    errorPopup("Please number for the \"For\" block");
-                }
-                block.add("for(int i = 0; i < " + number + "; i++){");
-                if (code.get(i+1).getAccessibleText().equals("Begin")){
-                    getCodeBlock(code.subList(i+2, code.size()));
-                } else {
-                    errorPopup("Please follow each If, While, and For statement by a \"Begin\" block");
-                }
-                block.add("}");
-            }
-        }
         block.add("}");
         block.add("}");
         return block;
     }
 
-    private void getCodeBlock(List<StackPane> start) {
-        for (i = 0; i < code.size(); i++) {
-            StackPane s = code.get(i);
+    private int getCodeBlock(List<StackPane> start) {
+        for (i = 0; i <= start.size() - 1; i++) {
+            StackPane s = start.get(i);
             String com = s.getAccessibleText();
             if (com.equals("Set Flower #")) {
                 String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
-                if (number == null){
-                    errorPopup("Please put in the number flower you wish to set");
-                }
-                lastport = parseInt(number) - 1;
-                block.add("strip.setPixelColor(" + lastport + ", 200, 200, 200);");
+                setFlower(number);
             } else if (com.equals("Show for ")) {
                 String time = ((TextField) ((HBox)s.getChildren().get(1)).getChildren().get(1)).getText();
                 if (time == null){
                     errorPopup("Please put in a time for the \"Show for\" Block");
+                    return 0;
                 }
                 block.add("delay(" + time + ");");
-                block.add("strip.setPixelColor(" + lastport + ", 0, 0, 0, 0)");
-            } else if (com.equals("If ") || (com.equals("While "))) {
+
+                block.add("strip.setPixelColor(" + lastPort + ", 0, 0, 0, 0)");
+            } else if ((com.equals("If ")) || (com.equals("While "))) {
                 String sensors = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(1)).getValue());
                 String condition = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(2)).getValue());
                 String number = ((TextField)((HBox) s.getChildren().get(1)).getChildren().get(3)).getText();
-                if ((sensors == null) || (condition == null) || (number == null)){
+                if ((sensors == null) || (condition == null) || (number.equals(""))){
                     errorPopup("Please finish filling out " + com + "the block");
+                    return 0;
                 }
                 block.add(com + "(analogRead(0)" + condition + number + "){");
-                if (code.get(i+1).getAccessibleText().equals("Begin")){
-                    getCodeBlock(code.subList(i+2, code.size()));
-                } else {
-                    errorPopup("Please follow each If, While, and For statement by a \"Begin\" block");
-                }
+                getInteriorBlock(start);
                 block.add("}");
             } else if (com.equals("Else ")) {
                 block.add("Else {");
+                getInteriorBlock(start);
                 block.add("}");
             } else if (com.equals("For ")) {
                 String number = ((TextField) s.getChildren().get(3)).getText();
-                if (number == null){
-                    errorPopup("Please number for the \"For\" block");
-                }
                 block.add("for(int i = 0; i < " + number + "; i++){");
-                if (code.get(i+1).getAccessibleText().equals("Begin")){
-                    getCodeBlock(code.subList(i+2, code.size()));
-                } else {
-                    errorPopup("Please follow each If, While, and For block by a \"Begin\" block");
-                }
+                getInteriorBlock(start);
                 block.add("}");
             } else if (com.equals("END")){
-                return;
+                return i;
             } else if (i == start.size() - 1){
                 errorPopup("Please follow each \"BEGIN\" by an \"END\" block to contain your code");
+                return 0;
             }
         }
+        return 0;
     }
 
     /***
@@ -229,7 +173,7 @@ public class gui extends Application {
         if (block == null) {     //checks is the block has been returned as null, block is null when an error occurs
             return;             //skips the function to not write the file, file should not be written due to error
         }
-         try(FileWriter file = new FileWriter("lightcode.ino");) {
+         try(FileWriter file = new FileWriter("lightcode.txt");) {
              for (String node : block) {
                  file.write(node + "\n");
              }
@@ -239,38 +183,27 @@ public class gui extends Application {
         }
     }
 
-    private boolean isBegin(int n) {
-        if (n >= code.size()) {
-            return false;
-        } else {
-            if ((code.get(n + 1).getAccessibleText().equals("Turn ")) ||
-                    (code.get(n + 1).getAccessibleText().equals("If ")) ||
-                    (code.get(n + 1).getAccessibleText().equals("While ")) ||
-                    (code.get(n + 1).getAccessibleText().equals("Repeat ")) ||
-                    (code.get(n + 1).getAccessibleText().equals("Forward")) ||
-                    (code.get(n + 1).getAccessibleText().equals("Do_Nothing")) ||
-                    (code.get(n + 1).getAccessibleText().equals("If_Crumb")) ||
-                    (code.get(n + 1).getAccessibleText().equals("Drop_Crumb")) ||
-                    (code.get(n + 1).getAccessibleText().equals("Eat_Crumb"))) {
-                return code.get(n).getAccessibleText().equals("BEGIN");
-            } else {
-                errorPopup("There Must be Code between the BEGIN and END Blocks");
-                return false;
+    private void getInteriorBlock(List<StackPane> start) {
+        try{
+            if (start.get(i+1).getAccessibleText().equals("BEGIN")){
+                i = getCodeBlock(start.subList(i+2, start.size())) + 1;
+            } else{
+                errorPopup("Please follow each If, While, and For statement by a \"Begin\" block");
+                return;
             }
+        } catch(IndexOutOfBoundsException e){
+            errorPopup("Please follow each If, While, and For statement by a \"Begin\" block");
+            return;
         }
     }
 
-    /***
-     *
-     * @param n         the index of code being checked
-     * @return if code at n is an END block
-     */
-    private boolean isEnd(int n) {
-        if (n >= code.size()) {
-            return false;
-        } else {
-            return code.get(n).getAccessibleText().equals("END");
+    public void setFlower(String number){
+        if (number.equals("")){
+            errorPopup("Please put in the number flower you wish to set");
+            return;
         }
+        lastPort = parseInt(number) - 1;
+        block.add("strip.setPixelColor(" + lastPort + ", 200, 200, 200);");
     }
 
     /***
@@ -287,7 +220,6 @@ public class gui extends Application {
         popup.setScene(new Scene(content));
         popup.show();
     }
-
 
     /***
      *
@@ -306,7 +238,7 @@ public class gui extends Application {
         inner.setFill(Color.LIGHTCORAL);
         inner.setStroke(Color.LIGHTCORAL.darker());
         final StackPane forForever = new StackPane();
-        forForever.getChildren().addAll(inner, new Label("Loop"));
+        forForever.getChildren().addAll(inner, new Label("For Forever"));
         forForever.setTranslateX(rect_width + 40);
         forForever.setTranslateY(0);
 
@@ -451,7 +383,6 @@ public class gui extends Application {
      * @param color             the color of the StackPane
      * @param width             the width of the StackPane
      * @param height            the height of the StackPane
-     * @param combo             the list of options for a ComboBox
      * @return a StackPane, holding the command String and a ComboBox, with the color as a background,
      *                              with the specified width and height
      *                              onMouseClick the StackPane will make a draggable StackPane with the same parameters
@@ -495,7 +426,6 @@ public class gui extends Application {
      * @param color             the color of the StackPane
      * @param width             the width of the StackPane
      * @param height            the height of the StackPane
-     * @param combo             the list of options for a ComboBox
      * @return a StackPane, holding the command String and a ComboBox, with the color as a background,
      *                              with the specified width and height
      *                              onMouseClick the StackPane will make a draggable StackPane with the same parameters
@@ -617,7 +547,6 @@ public class gui extends Application {
      * @param color             the color of the StackPane
      * @param width             the width of the StackPane
      * @param height            the height of the StackPane
-     * @param comboBox
      * @return a draggable StackPane holding the command String and a ComboBox, with the color as a
      *                              background, with the specified width and height, and adds it the code list
      */
@@ -700,7 +629,6 @@ public class gui extends Application {
      * @param color             the color of the StackPane
      * @param width             the width of the StackPane
      * @param height            the height of the StackPane
-     * @param comboBox
      * @return a draggable StackPane holding the command String and a ComboBox, with the color as a
      *                              background, with the specified width and height, and adds it the code list
      */
@@ -774,14 +702,12 @@ public class gui extends Application {
         return rect;
     }
 
-
     /***
      *
      * @param command           a String representing the command
      * @param color             the color of the StackPane
      * @param width             the width of the StackPane
      * @param height            the height of the StackPane
-     * @param comboBox
      * @return a draggable StackPane holding the command String and a ComboBox, with the color as a
      *                              background, with the specified width and height, and adds it the code list
      */
@@ -810,81 +736,6 @@ public class gui extends Application {
         rect.setCursor(Cursor.HAND);
         //sets cursor over text to hand
         text.setCursor(Cursor.HAND);
-        rect.setOnMouseDragged((MouseEvent me) -> {
-            current = rect;
-            // change of mouse's x and y values
-            double dragX = me.getSceneX() - dragAnchor.getX();
-            double dragY = me.getSceneY() - dragAnchor.getY();
-
-            double newXPosition = initX + dragX; // delta of rectangle
-            newXPosition -= newXPosition % tick; // coarse movement "snap2grid"
-            double newYPosition = initY + dragY; // delta of rectangle
-            newYPosition -= newYPosition % tick; // coarse movement "snap2grid"
-
-            // check that the rectangle is not moving outside the bounds of the window before
-            //      changing the rectangles position
-            if ((newXPosition >= (rect_width + 40)) &&
-                    (newXPosition <= (window_width - width))) {
-                rect.setTranslateX(newXPosition);
-            }
-            if ((newYPosition >= 0) &&
-                    (newYPosition <= window_height - height)) {
-                rect.setTranslateY(newYPosition);
-            }
-        });
-
-        rect.setOnMousePressed((MouseEvent me) -> {
-            //stores initial x and y value of the x for the next time the rectangle is dragged
-            current = rect;
-            initX = rect.getTranslateX();
-            initY = rect.getTranslateY();
-            dragAnchor = new Point2D(
-                    me.getSceneX(), me.getSceneY()
-            );
-        });
-
-        rect.setOnMouseReleased((MouseEvent me) -> {
-            current = null;
-        });
-
-        rect.setOnMouseDragOver((MouseEvent me) -> {
-            rect.setOnMouseReleased((MouseEvent mouseEvent) -> {
-                if (current != null){
-                    current.setTranslateY(rect.getTranslateY() + rect_height);
-                    current.setTranslateX(rect.getTranslateX() + 20);
-                }
-            });
-        });
-        code.add(rect);
-        return rect;
-    }
-
-
-    /***
-     *
-     * @param command           a String representing the command
-     * @param color             the color of the StackPane
-     * @param width             the width of the StackPane
-     * @param height            the height of the StackPane
-     * @param comboBox
-     * @return a draggable StackPane holding the command String and a ComboBox, with the color as a
-     *                              background, with the specified width and height, and adds it the code list
-     */
-    private StackPane makeRect(final String command, final Color color, final int
-            width, final int height, final ComboBox comboBox) {
-
-        final Rectangle inner = new Rectangle(width, height);
-        inner.setFill(color);
-        inner.setStroke(color.darker());
-        final StackPane rect = new StackPane();
-        HBox label = new HBox();
-        label.setAlignment(Pos.CENTER);
-        label.getChildren().addAll(new Label(command), comboBox);
-        rect.getChildren().addAll(inner, label);
-
-
-        // sets cursor over rectangle to hand
-        rect.setCursor(Cursor.HAND);
         rect.setOnMouseDragged((MouseEvent me) -> {
             current = rect;
             // change of mouse's x and y values
