@@ -41,6 +41,7 @@ public class gui extends Application {
     private final static int tick = 20;
     private Group group;
     private ArrayList<StackPane> code;
+    private ArrayList<String> block;
     private Stage primaryStage;
     private final Rectangle canvas = new Rectangle(window_width, window_height);
     private final Rectangle commandSpace = new Rectangle(rect_width + 40, window_height);
@@ -48,6 +49,7 @@ public class gui extends Application {
     private double initX;
     private Point2D dragAnchor;
     private int i;
+    private int lastport;
     private StackPane current;
 
     @Override
@@ -91,7 +93,6 @@ public class gui extends Application {
         if (code.size() == 0) {
             return new ArrayList<>();
         }
-        int lastport = 0;
 
         ArrayList<String> block = new ArrayList<>();
         block.add("#include <Adafruit_NeoPixel.h>");
@@ -114,33 +115,107 @@ public class gui extends Application {
             String com = s.getAccessibleText();
             if (com.equals("Set Flower #")) {
                 String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
-                lastport = parseInt(number);
-                block.add("strip.setPixelColor(" + number + ", 200, 200, 200);");
+                if (number == null){
+                    errorPopup("Please put in the number flower you wish to set");
+                }
+                lastport = parseInt(number) - 1;
+                block.add("strip.setPixelColor(" + lastport + ", 200, 200, 200);");
             } else if (com.equals("Show for ")) {
                 String time = ((TextField) ((HBox)s.getChildren().get(1)).getChildren().get(1)).getText();
-                        block.add("delay(" + time + ");");
-                        block.add("strip.setPixelColor(" + lastport + ", 0, 0, 0, 0)");
+                if (time == null){
+                    errorPopup("Please put in a time for the \"Show for\" Block");
+                }
+                block.add("delay(" + time + ");");
+                block.add("strip.setPixelColor(" + lastport + ", 0, 0, 0, 0)");
             } else if (com.equals("If ") || (com.equals("While "))) {
-                String sensor = ((String)((ComboBox)((HBox) s.getChildren().get(0)).getChildren().get(0)).getValue());
-                String number = ((TextField)((HBox) s.getChildren().get(0)).getChildren().get(1)).getText();
-                String condition = ((String)((ComboBox)((HBox) s.getChildren().get(0)).getChildren().get(3)).getValue());
-                block.add(com + "analogRead(0)" + condition + number + "){");
-                    while(s.getTranslateX() < s.getLayoutY()){
-
-                    }
+                String sensors = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(1)).getValue());
+                String condition = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(2)).getValue());
+                String number = ((TextField)((HBox) s.getChildren().get(1)).getChildren().get(3)).getText();
+                if ((sensors == null) || (condition == null) || (number == null)){
+                    errorPopup("Please finish filling out " + com + "the block");
+                }
+                block.add(com + "(analogRead(0)" + condition + number + "){");
+                if (code.get(i+1).getAccessibleText().equals("Begin")){
+                    getCodeBlock(code.subList(i+2, code.size()));
+                } else {
+                    errorPopup("Please follow each If, While, and For statement by a \"Begin\" block");
+                }
                 block.add("}");
             } else if (com.equals("Else ")) {
                 block.add("Else {");
                 block.add("}");
             } else if (com.equals("For ")) {
                 String number = ((TextField) s.getChildren().get(3)).getText();
+                if (number == null){
+                    errorPopup("Please number for the \"For\" block");
+                }
                 block.add("for(int i = 0; i < " + number + "; i++){");
+                if (code.get(i+1).getAccessibleText().equals("Begin")){
+                    getCodeBlock(code.subList(i+2, code.size()));
+                } else {
+                    errorPopup("Please follow each If, While, and For statement by a \"Begin\" block");
+                }
                 block.add("}");
             }
         }
         block.add("}");
         block.add("}");
         return block;
+    }
+
+    private void getCodeBlock(List<StackPane> start) {
+        for (i = 0; i < code.size(); i++) {
+            StackPane s = code.get(i);
+            String com = s.getAccessibleText();
+            if (com.equals("Set Flower #")) {
+                String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
+                if (number == null){
+                    errorPopup("Please put in the number flower you wish to set");
+                }
+                lastport = parseInt(number) - 1;
+                block.add("strip.setPixelColor(" + lastport + ", 200, 200, 200);");
+            } else if (com.equals("Show for ")) {
+                String time = ((TextField) ((HBox)s.getChildren().get(1)).getChildren().get(1)).getText();
+                if (time == null){
+                    errorPopup("Please put in a time for the \"Show for\" Block");
+                }
+                block.add("delay(" + time + ");");
+                block.add("strip.setPixelColor(" + lastport + ", 0, 0, 0, 0)");
+            } else if (com.equals("If ") || (com.equals("While "))) {
+                String sensors = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(1)).getValue());
+                String condition = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(2)).getValue());
+                String number = ((TextField)((HBox) s.getChildren().get(1)).getChildren().get(3)).getText();
+                if ((sensors == null) || (condition == null) || (number == null)){
+                    errorPopup("Please finish filling out " + com + "the block");
+                }
+                block.add(com + "(analogRead(0)" + condition + number + "){");
+                if (code.get(i+1).getAccessibleText().equals("Begin")){
+                    getCodeBlock(code.subList(i+2, code.size()));
+                } else {
+                    errorPopup("Please follow each If, While, and For statement by a \"Begin\" block");
+                }
+                block.add("}");
+            } else if (com.equals("Else ")) {
+                block.add("Else {");
+                block.add("}");
+            } else if (com.equals("For ")) {
+                String number = ((TextField) s.getChildren().get(3)).getText();
+                if (number == null){
+                    errorPopup("Please number for the \"For\" block");
+                }
+                block.add("for(int i = 0; i < " + number + "; i++){");
+                if (code.get(i+1).getAccessibleText().equals("Begin")){
+                    getCodeBlock(code.subList(i+2, code.size()));
+                } else {
+                    errorPopup("Please follow each If, While, and For block by a \"Begin\" block");
+                }
+                block.add("}");
+            } else if (com.equals("END")){
+                return;
+            } else if (i == start.size() - 1){
+                errorPopup("Please follow each \"BEGIN\" by an \"END\" block to contain your code");
+            }
+        }
     }
 
     /***
@@ -150,7 +225,7 @@ public class gui extends Application {
      * writes each ProgNode in the ArrayList, block, to the specified path
      */
     public void writeFile(){
-        ArrayList<String> block = writeCode();
+        block = writeCode();
         if (block == null) {     //checks is the block has been returned as null, block is null when an error occurs
             return;             //skips the function to not write the file, file should not be written due to error
         }
@@ -162,43 +237,6 @@ public class gui extends Application {
          } catch (IOException e){
              System.out.println("Error, File name invalid");
         }
-    }
-
-    /***
-     *
-     * @return recursively returns an ArrayList of a portion the ProgNodes in the file
-     */
-    private ArrayList<String> getCodeBlock(List<StackPane> start) {
-        ArrayList<String> block = new ArrayList<>();
-        for (int i = 0; i < start.size(); i++) {
-            StackPane s = start.get(i);
-            String com = s.getAccessibleText();
-            if (com.equals("Forward")) {
-
-            } else if (com.equals("Drop")) {
-
-            } else if (com.equals("Eat_Crumb")) {
-
-            } else if (com.equals("Drop_Crumb")) {
-
-            } else if (com.equals("Turn ")) {
-                ComboBox c = (ComboBox) ((HBox) s.getChildren().get(1)).getChildren().get(1);
-
-            } else if (com.equals("While ")) {
-
-            } else if (com.equals("If ")) {
-
-            } else if (com.equals("If_Crumb")) {
-
-            } else if (com.equals("Repeat ")) {
-
-            } else if (com.equals("Do Nothing")) {
-
-            } else if (com.equals("END")) {
-                return block;
-            }
-        }
-        return block;
     }
 
     private boolean isBegin(int n) {
@@ -309,9 +347,21 @@ public class gui extends Application {
         forBlock.setAccessibleText("For ");
         startY += rect_height;
 
+        final StackPane begin = makeBlock("BEGIN", Color.DARKCYAN, rect_width, rect_height);
+        begin.setTranslateX(startX);
+        begin.setTranslateY(startY);
+        begin.setAccessibleText("BEGIN");
+        startY += rect_height;
+
+
+        final StackPane end = makeBlock("END", Color.DARKCYAN, rect_width, rect_height);
+        end.setTranslateX(startX);
+        end.setTranslateY(startY);
+        end.setAccessibleText("END");
+        startY += rect_height;
 
         group.getChildren().addAll(canvas, commandSpace, forForever, setFlower, showFor, ifBlock, elseBlock,
-                whileBlock, forBlock);
+                whileBlock, forBlock, begin, end);
         return group;
     }
 

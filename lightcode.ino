@@ -11,7 +11,7 @@ void setup() {
 
 void loop() {
 //YOUR CODE
-delay(350);
-strip.setPixelColor(0, 0, 0, 0)
+If analogRead(0)null){
+}
 }
 }
