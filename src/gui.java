@@ -1,7 +1,6 @@
 /**
  * Created by Ariel on 2/25/2017.
  */
-import com.sun.webkit.ColorChooser;
 import javafx.application.Application;
 import javafx.geometry.*;
 import javafx.geometry.Insets;
@@ -11,18 +10,12 @@ import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.input.MouseDragEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
-import javafx.stage.PopupWindow;
 import javafx.stage.Stage;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.scene.paint.Color;
 
-import javax.swing.*;
-import java.awt.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
@@ -51,6 +44,8 @@ public class gui extends Application {
     private int i;
     private int lastPort;
     private StackPane current;
+    private String tab = "    ";
+    private int level = 0;
 
     @Override
     /**
@@ -76,9 +71,7 @@ public class gui extends Application {
         b.setTranslateY(window_height - b.getHeight() - 40);
         b.setBackground(new Background(new BackgroundFill(Color.CORAL, CornerRadii.EMPTY,
                 Insets.EMPTY)));
-        b.setOnMouseClicked((MouseEvent me) -> {
-            writeFile();
-        });
+        b.setOnMouseClicked((MouseEvent me) ->  writeFile());
         return b;
     }
 
@@ -102,12 +95,12 @@ public class gui extends Application {
         block.add("//Parameter 3 = pixel type flags");
         block.add("Adafruit_NeoPixel strip = Adafruit_NeoPixel(2, PIN, NEO_GRB + NEO_KHZ800);");
         block.add("void setup() {");
-        block.add("  strip.begin();");
-        block.add("  strip.show();");
+        block.add(tab + "strip.begin();");
+        block.add(tab + "strip.show();");
         block.add("}");
         block.add("");
         block.add("void loop() {");
-        block.add("//YOUR CODE");
+        block.add(tab + "//YOUR CODE");
 
         getCodeBlock(code);
 
@@ -122,36 +115,22 @@ public class gui extends Application {
             String com = s.getAccessibleText();
             if (com.equals("Set Flower #")) {
                 String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
-                setFlower(number);
+                writeFlower(number);
             } else if (com.equals("Show for ")) {
                 String time = ((TextField) ((HBox)s.getChildren().get(1)).getChildren().get(1)).getText();
-                if (time == null){
-                    errorPopup("Please put in a time for the \"Show for\" Block");
-                    return 0;
-                }
-                block.add("delay(" + time + ");");
-
-                block.add("strip.setPixelColor(" + lastPort + ", 0, 0, 0, 0)");
+                writeShowFor(time);
             } else if ((com.equals("If ")) || (com.equals("While "))) {
-                String sensors = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(1)).getValue());
+                String sensor = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(1)).getValue());
                 String condition = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(2)).getValue());
                 String number = ((TextField)((HBox) s.getChildren().get(1)).getChildren().get(3)).getText();
-                if ((sensors == null) || (condition == null) || (number.equals(""))){
-                    errorPopup("Please finish filling out " + com + "the block");
-                    return 0;
-                }
-                block.add(com + "(analogRead(0)" + condition + number + "){");
-                getInteriorBlock(start);
-                block.add("}");
+                writeIfWhile(com, sensor, condition, number, start);
             } else if (com.equals("Else ")) {
                 block.add("Else {");
                 getInteriorBlock(start);
                 block.add("}");
             } else if (com.equals("For ")) {
                 String number = ((TextField) s.getChildren().get(3)).getText();
-                block.add("for(int i = 0; i < " + number + "; i++){");
-                getInteriorBlock(start);
-                block.add("}");
+                writeFor(number, start);
             } else if (com.equals("END")){
                 return i;
             } else if (i == start.size() - 1){
@@ -162,18 +141,15 @@ public class gui extends Application {
         return 0;
     }
 
-    /***
-     *
-     * @throws IOException      throws IOException to getFilePath()
-     *
+    /**
      * writes each ProgNode in the ArrayList, block, to the specified path
      */
-    public void writeFile(){
+    private void writeFile(){
         block = writeCode();
         if (block == null) {     //checks is the block has been returned as null, block is null when an error occurs
             return;             //skips the function to not write the file, file should not be written due to error
         }
-         try(FileWriter file = new FileWriter("lightcode.txt");) {
+         try(FileWriter file = new FileWriter("lightcode.txt")) {
              for (String node : block) {
                  file.write(node + "\n");
              }
@@ -197,13 +173,49 @@ public class gui extends Application {
         }
     }
 
-    public void setFlower(String number){
-        if (number.equals("")){
-            errorPopup("Please put in the number flower you wish to set");
+    private void writeFlower(String number){
+        if (number.equals("") || !checkIsNumber(number)){
+            errorPopup("Please input a number for the \"Flower\" Block");
             return;
         }
         lastPort = parseInt(number) - 1;
         block.add("strip.setPixelColor(" + lastPort + ", 200, 200, 200);");
+    }
+
+    private void writeShowFor(String time){
+        if (time.equals("") || !checkIsNumber(time)){
+            errorPopup("Please input a number for the \"Show for\" Block");
+            return;
+        }
+        block.add("delay(" + time + ");");
+        block.add("strip.setPixelColor(" + lastPort + ", 0, 0, 0, 0)");
+    }
+
+    public void writeIfWhile(String com, String sensor, String condition, String number, List<StackPane> start){
+        if ((sensor == null) || (condition == null) || (number.equals(""))){
+            errorPopup("Please finish filling out " + com + "the block");
+            return;
+        }
+        block.add(com + "(analogRead(0)" + condition + number + "){");
+        getInteriorBlock(start);
+        block.add("}");
+    }
+
+    private void writeFor(String number, List<StackPane> start){
+        if (number.equals("") || !checkIsNumber(number)){
+            errorPopup("Please input a number for the \"For\" Block");
+            return;
+        }
+        block.add("for(int i = 0; i < " + number + "; i++){");
+        getInteriorBlock(start);
+        block.add("}");
+    }
+
+    public boolean checkIsNumber(String check){
+        try {
+            parseInt(check);
+            return true;
+        } catch (NumberFormatException e){ return false; }
     }
 
     /***
@@ -364,7 +376,7 @@ public class gui extends Application {
         rect.setCursor(Cursor.HAND);
         //sets cursor over text to hand
         text.setCursor(Cursor.HAND);
-        //sets cursor over colorchooser to hand
+        //sets cursor over color chooser to hand
         colorPicker.setCursor(Cursor.HAND);
         rect.setOnMousePressed((MouseEvent me) -> {
             // change of mouse's x and y values
