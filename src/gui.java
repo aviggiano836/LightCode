@@ -56,7 +56,7 @@ public class gui extends Application {
         group = new Group();
         Scene scene = new Scene(createCommands());
         code = new ArrayList<>();
-        group.getChildren().add(save());
+        group.getChildren().addAll(save(), upload());
         primaryStage.setScene(scene);
         primaryStage.show();
     }
@@ -75,6 +75,45 @@ public class gui extends Application {
         return b;
     }
 
+    private Button upload() throws IOException {
+        Button b = new Button("Upload");
+        b.setTranslateX(window_width - b.getWidth() - 140);
+        b.setTranslateY(window_height - b.getHeight() - 40);
+        b.setBackground(new Background(new BackgroundFill(Color.CORAL, CornerRadii.EMPTY,
+                Insets.EMPTY)));
+        b.setOnMouseClicked((MouseEvent me) ->  uploadFile());
+        return b;
+    }
+
+    /**
+     * writes each ProgNode in the ArrayList, block, to the specified path
+     */
+    private void writeFile(){
+        block = writeCode();
+        if (block == null) {     //checks is the block has been returned as null, block is null when an error occurs
+            return;             //skips the function to not write the file, file should not be written due to error
+        }
+        try(FileWriter file = new FileWriter("lightcode.ino")) {
+            for (String node : block) {
+                file.write(node + "\n");
+            }
+            file.close();
+        } catch (IOException e){
+            System.out.println("Error, File name invalid");
+        }
+    }
+
+    private void uploadFile(){
+        //writeFile();
+        try {
+            Runtime rt = Runtime.getRuntime();
+            rt.exec("cmd.exe /c start"/* arduino --upload C:\\Users\\Ariel\\IdeaProjects\\lightCode\\lightcode.ino"*/,
+                    null, new File("C:\\Program Files (x86)\\Arduino"));
+        } catch (IOException e) {
+            errorPopup("RUNTIME ERROR");
+        }
+    }
+
     /***
      *
      * @return an ArrayList of all the ProgNodes in the file
@@ -89,7 +128,7 @@ public class gui extends Application {
 
         block = new ArrayList<>();
         block.add("#include <Adafruit_NeoPixel.h>");
-        block.add("      #define PIN 7");
+        block.add("      #define PIN 3");
         block.add("//Parameter 1 = number of pixels");
         block.add("//Parameter 2 = pin number");
         block.add("//Parameter 3 = pixel type flags");
@@ -126,7 +165,7 @@ public class gui extends Application {
                 writeIfWhile(com, sensor, condition, number, start);
             } else if (com.equals("Else ")) {
                 block.add("Else {");
-                getInteriorBlock(start);
+                writeInteriorBlock(start);
                 block.add("}");
             } else if (com.equals("For ")) {
                 String number = ((TextField) s.getChildren().get(3)).getText();
@@ -141,25 +180,7 @@ public class gui extends Application {
         return 0;
     }
 
-    /**
-     * writes each ProgNode in the ArrayList, block, to the specified path
-     */
-    private void writeFile(){
-        block = writeCode();
-        if (block == null) {     //checks is the block has been returned as null, block is null when an error occurs
-            return;             //skips the function to not write the file, file should not be written due to error
-        }
-         try(FileWriter file = new FileWriter("lightcode.txt")) {
-             for (String node : block) {
-                 file.write(node + "\n");
-             }
-             file.close();
-         } catch (IOException e){
-             System.out.println("Error, File name invalid");
-        }
-    }
-
-    private void getInteriorBlock(List<StackPane> start) {
+    private void writeInteriorBlock(List<StackPane> start) {
         try{
             if (start.get(i+1).getAccessibleText().equals("BEGIN")){
                 i = getCodeBlock(start.subList(i+2, start.size())) + 1;
@@ -191,13 +212,13 @@ public class gui extends Application {
         block.add("strip.setPixelColor(" + lastPort + ", 0, 0, 0, 0)");
     }
 
-    public void writeIfWhile(String com, String sensor, String condition, String number, List<StackPane> start){
+    private void writeIfWhile(String com, String sensor, String condition, String number, List<StackPane> start){
         if ((sensor == null) || (condition == null) || (number.equals(""))){
             errorPopup("Please finish filling out " + com + "the block");
             return;
         }
         block.add(com + "(analogRead(0)" + condition + number + "){");
-        getInteriorBlock(start);
+        writeInteriorBlock(start);
         block.add("}");
     }
 
@@ -207,7 +228,7 @@ public class gui extends Application {
             return;
         }
         block.add("for(int i = 0; i < " + number + "; i++){");
-        getInteriorBlock(start);
+        writeInteriorBlock(start);
         block.add("}");
     }
 
