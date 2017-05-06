@@ -154,25 +154,42 @@ public class gui extends Application {
             if (com.equals("Set Flower #")) {
                 String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
                 Color color = ((ColorPicker)((HBox) s.getChildren().get(1)).getChildren().get(2)).getValue();
-                writeFlower(number, color);
+                 if(!writeFlower(number, color)){
+                     return 0;
+                 }
             } else if (com.equals("Clear Flower #")) {
                 String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
-                writeClear(number);
+                if (!writeClear(number)){
+                    return 0;
+                }
+            }else if (com.equals("Set Brightness ")) {
+                String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
+                if (!writeBright(number)){
+                    return 0;
+                }
             }else if (com.equals("Delay for ")) {
                 String time = ((TextField)((HBox)s.getChildren().get(1)).getChildren().get(1)).getText();
-                writeDelay(time);
+                if (!writeDelay(time)){
+                    return 0;
+                }
             } else if ((com.equals("If ")) || (com.equals("While "))) {
                 String sensor = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(1)).getValue());
                 String condition = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(2)).getValue());
                 String number = ((TextField)((HBox) s.getChildren().get(1)).getChildren().get(3)).getText();
-                writeIfWhile(com, sensor, condition, number, start);
+                if (!writeIfWhile(com, sensor, condition, number, start)){
+                    return 0;
+                }
             } else if (com.equals("Else ")) {
                 block.add("Else {");
-                writeInteriorBlock(start);
+                if (!writeInteriorBlock(start)){
+                    return 0;
+                }
                 block.add("}");
             } else if (com.equals("For ")) {
-                String number = ((TextField) s.getChildren().get(3)).getText();
-                writeFor(number, start);
+                String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
+                if (!writeFor(number, start)){
+                    return 0;
+                }
             } else if (com.equals("END")){
                 return i;
             } else if (i == start.size() - 1){
@@ -183,67 +200,87 @@ public class gui extends Application {
         return 0;
     }
 
-    private void writeInteriorBlock(List<StackPane> start) {
+    private boolean writeInteriorBlock(List<StackPane> start) {
         try{
             if (start.get(i+1).getAccessibleText().equals("BEGIN")){
-                i = getCodeBlock(start.subList(i+2, start.size())) + 1;
+                getCodeBlock(start.subList(i+1, start.size()));
             } else{
                 errorPopup("Please follow each If, While, and For statement by a \"Begin\" block");
-                return;
+                return false;
             }
         } catch(IndexOutOfBoundsException e){
             errorPopup("Please follow each If, While, and For statement by a \"Begin\" block");
-            return;
+            return false;
         }
+        return true;
     }
 
-    private void writeFlower(String number, Color color){
+    private boolean writeFlower(String number, Color color){
         if (number.equals("") || !checkIsNumber(number)){
             errorPopup("Please input a number for the \"Set Flower\" Block");
-            return;
+            return false;
         }
         lastPort = parseInt(number) - 1;
         block.add("strip.setPixelColor(" + lastPort + ", " + (int)(255*color.getRed()) + ", " +
                 (int)(255*color.getGreen()) + ", " + (int)(255*color.getBlue()) + ");");
         block.add("strip.show();");
+        return true;
     }
 
-    private void writeClear(String number){
+    private boolean writeClear(String number){
         if (number.equals("") || !checkIsNumber(number)){
             errorPopup("Please input a number for the \"Clear Flower\" Block");
-            return;
+            return false;
         }
         lastPort = parseInt(number) - 1;
         block.add("strip.setPixelColor(" + lastPort + ", 0, 0, 0);");
         block.add("strip.show();");
+        return true;
     }
 
-    private void writeDelay(String time){
+    private boolean writeBright(String number){
+        if (number.equals("") || !checkIsNumber(number)){
+            errorPopup("Please input a number for the \"Set Brightness\" Block");
+            return false;
+        } else if (Integer.parseInt(number) > 255){
+            errorPopup("Maximum brightness is 255, please input in new number");
+            return false;
+        }
+        lastPort = parseInt(number) - 1;
+        block.add("strip.setBrightness(" + number + ");");
+        block.add("strip.show();");
+        return true;
+    }
+
+    private boolean writeDelay(String time){
         if (time.equals("") || !checkIsNumber(time)){
             errorPopup("Please input a number for the \"Show for\" Block");
-            return;
+            return false;
         }
         block.add("delay(" + time + ");");
+        return true;
     }
 
-    private void writeIfWhile(String com, String sensor, String condition, String number, List<StackPane> start){
+    private boolean writeIfWhile(String com, String sensor, String condition, String number, List<StackPane> start){
         if ((sensor == null) || (condition == null) || (number.equals(""))){
             errorPopup("Please finish filling out " + com + "the block");
-            return;
+            return false;
         }
         block.add(com + "(analogRead(0)" + condition + number + "){");
         writeInteriorBlock(start);
         block.add("}");
+        return true;
     }
 
-    private void writeFor(String number, List<StackPane> start){
+    private boolean writeFor(String number, List<StackPane> start){
         if (number.equals("") || !checkIsNumber(number)){
             errorPopup("Please input a number for the \"For\" Block");
-            return;
+            return false;
         }
         block.add("for(int i = 0; i < " + number + "; i++){");
         writeInteriorBlock(start);
         block.add("}");
+        return true;
     }
 
     public boolean checkIsNumber(String check){
@@ -278,7 +315,7 @@ public class gui extends Application {
         canvas.setFill(Color.LIGHTGRAY);
         commandSpace.setStroke(Color.GRAY);
         commandSpace.setFill(Color.DARKGRAY);
-         // list of all possible directions
+
         /*-----------------------------------------------------------------------------------*/
         /*------------------------------------COMMANDS---------------------------------------*/
         final Rectangle inner = new Rectangle(rect_width, rect_height);
@@ -301,7 +338,13 @@ public class gui extends Application {
         clearFlower.setAccessibleText("Clear_Flower");
         startY += rect_height;
 
-        final StackPane delay = makeNumberBlock("Delay for ", Color.POWDERBLUE, rect_width, rect_height, "ms");
+        final StackPane setBright = makeNumberBlock("Set Brightness ", Color.AQUA, rect_width, rect_height, "light");
+        setBright.setTranslateX(startX);
+        setBright.setTranslateY(startY);
+        setBright.setAccessibleText("Set_Brightness");
+        startY += rect_height;
+
+        final StackPane delay = makeNumberBlock("Delay for ", Color.DARKTURQUOISE, rect_width, rect_height, "ms");
         delay.setTranslateX(startX);
         delay.setTranslateY(startY);
         delay.setAccessibleText("Delay_for");
@@ -325,7 +368,6 @@ public class gui extends Application {
         whileBlock.setAccessibleText("While ");
         startY += rect_height;
 
-
         final StackPane forBlock = makeNumberBlock("For ", Color.DEEPSKYBLUE, rect_width, rect_height, "times");
         forBlock.setTranslateX(startX);
         forBlock.setTranslateY(startY);
@@ -338,15 +380,14 @@ public class gui extends Application {
         begin.setAccessibleText("BEGIN");
         startY += rect_height;
 
-
         final StackPane end = makeBlock("END", Color.DARKCYAN, rect_width, rect_height);
         end.setTranslateX(startX);
         end.setTranslateY(startY);
         end.setAccessibleText("END");
         startY += rect_height;
 
-        group.getChildren().addAll(canvas, commandSpace, forForever, setFlower, clearFlower, delay, ifBlock, elseBlock,
-                whileBlock, forBlock, begin, end);
+        group.getChildren().addAll(canvas, commandSpace, forForever, setFlower, clearFlower, setBright, delay, ifBlock,
+                elseBlock, whileBlock, forBlock, begin, end);
         return group;
     }
 
