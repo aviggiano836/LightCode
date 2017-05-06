@@ -93,7 +93,7 @@ public class gui extends Application {
         if (block == null) {     //checks is the block has been returned as null, block is null when an error occurs
             return;             //skips the function to not write the file, file should not be written due to error
         }
-        try(FileWriter file = new FileWriter("lightcode.ino")) {
+        try(FileWriter file = new FileWriter("C:\\Users\\Ariel\\Desktop\\test\\test.ino")) {
             for (String node : block) {
                 file.write(node + "\n");
             }
@@ -107,7 +107,7 @@ public class gui extends Application {
         //writeFile();
         try {
             Runtime rt = Runtime.getRuntime();
-            rt.exec("cmd.exe /c start"/* arduino --upload C:\\Users\\Ariel\\IdeaProjects\\lightCode\\lightcode.ino"*/,
+            rt.exec("cmd.exe /c start arduino --upload C:\\Users\\Ariel\\Desktop\\test\\test.ino",
                     null, new File("C:\\Program Files (x86)\\Arduino"));
         } catch (IOException e) {
             errorPopup("RUNTIME ERROR");
@@ -144,7 +144,6 @@ public class gui extends Application {
         getCodeBlock(code);
 
         block.add("}");
-        block.add("}");
         return block;
     }
 
@@ -154,10 +153,14 @@ public class gui extends Application {
             String com = s.getAccessibleText();
             if (com.equals("Set Flower #")) {
                 String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
-                writeFlower(number);
-            } else if (com.equals("Show for ")) {
-                String time = ((TextField) ((HBox)s.getChildren().get(1)).getChildren().get(1)).getText();
-                writeShowFor(time);
+                Color color = ((ColorPicker)((HBox) s.getChildren().get(1)).getChildren().get(2)).getValue();
+                writeFlower(number, color);
+            } else if (com.equals("Clear Flower #")) {
+                String number =((TextField)((HBox) s.getChildren().get(1)).getChildren().get(1)).getText();
+                writeClear(number);
+            }else if (com.equals("Delay for ")) {
+                String time = ((TextField)((HBox)s.getChildren().get(1)).getChildren().get(1)).getText();
+                writeDelay(time);
             } else if ((com.equals("If ")) || (com.equals("While "))) {
                 String sensor = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(1)).getValue());
                 String condition = ((String)((ComboBox)((HBox) s.getChildren().get(1)).getChildren().get(2)).getValue());
@@ -194,22 +197,33 @@ public class gui extends Application {
         }
     }
 
-    private void writeFlower(String number){
+    private void writeFlower(String number, Color color){
         if (number.equals("") || !checkIsNumber(number)){
-            errorPopup("Please input a number for the \"Flower\" Block");
+            errorPopup("Please input a number for the \"Set Flower\" Block");
             return;
         }
         lastPort = parseInt(number) - 1;
-        block.add("strip.setPixelColor(" + lastPort + ", 200, 200, 200);");
+        block.add("strip.setPixelColor(" + lastPort + ", " + (int)(255*color.getRed()) + ", " +
+                (int)(255*color.getGreen()) + ", " + (int)(255*color.getBlue()) + ");");
+        block.add("strip.show();");
     }
 
-    private void writeShowFor(String time){
+    private void writeClear(String number){
+        if (number.equals("") || !checkIsNumber(number)){
+            errorPopup("Please input a number for the \"Clear Flower\" Block");
+            return;
+        }
+        lastPort = parseInt(number) - 1;
+        block.add("strip.setPixelColor(" + lastPort + ", 0, 0, 0);");
+        block.add("strip.show();");
+    }
+
+    private void writeDelay(String time){
         if (time.equals("") || !checkIsNumber(time)){
             errorPopup("Please input a number for the \"Show for\" Block");
             return;
         }
         block.add("delay(" + time + ");");
-        block.add("strip.setPixelColor(" + lastPort + ", 0, 0, 0, 0)");
     }
 
     private void writeIfWhile(String com, String sensor, String condition, String number, List<StackPane> start){
@@ -281,10 +295,16 @@ public class gui extends Application {
         setFlower.setAccessibleText("Set_Flower");
         startY += rect_height;
 
-        final StackPane showFor = makeNumberBlock("Show for ", Color.POWDERBLUE, rect_width, rect_height, "ms");
-        showFor.setTranslateX(startX);
-        showFor.setTranslateY(startY);
-        showFor.setAccessibleText("Show_for");
+        final StackPane clearFlower = makeClearFlowerBlock("Clear Flower #", Color.DODGERBLUE, rect_width, rect_height);
+        clearFlower.setTranslateX(startX);
+        clearFlower.setTranslateY(startY);
+        clearFlower.setAccessibleText("Clear_Flower");
+        startY += rect_height;
+
+        final StackPane delay = makeNumberBlock("Delay for ", Color.POWDERBLUE, rect_width, rect_height, "ms");
+        delay.setTranslateX(startX);
+        delay.setTranslateY(startY);
+        delay.setAccessibleText("Delay_for");
         startY += rect_height;
 
         final StackPane ifBlock = makeIfBlock("If ", Color.CORNFLOWERBLUE, rect_width, rect_height);
@@ -325,7 +345,7 @@ public class gui extends Application {
         end.setAccessibleText("END");
         startY += rect_height;
 
-        group.getChildren().addAll(canvas, commandSpace, forForever, setFlower, showFor, ifBlock, elseBlock,
+        group.getChildren().addAll(canvas, commandSpace, forForever, setFlower, clearFlower, delay, ifBlock, elseBlock,
                 whileBlock, forBlock, begin, end);
         return group;
     }
@@ -402,6 +422,37 @@ public class gui extends Application {
         rect.setOnMousePressed((MouseEvent me) -> {
             // change of mouse's x and y values
             final StackPane com = makeSetFlowerRect(command, color, width, height);
+            com.setTranslateX(x);
+            com.setTranslateY(y);
+            com.setAccessibleText(command);
+            group.getChildren().add(com);
+        });
+        return rect;
+    }
+
+    private StackPane makeClearFlowerBlock(final String command, final Color color, final int
+            width, final int height) {
+        final Rectangle inner = new Rectangle(width, height);
+        inner.setFill(color);
+        inner.setStroke(color.darker());
+        final StackPane rect = new StackPane();
+
+        final TextField text = new TextField();
+        text.setMaxWidth(50);
+        text.setEditable(false);
+
+        HBox label = new HBox();
+        label.setAlignment(Pos.CENTER);
+        label.getChildren().addAll(new Label(command), text);
+        rect.getChildren().addAll(inner, label);
+
+        // sets cursor over rectangle to hand
+        rect.setCursor(Cursor.HAND);
+        //sets cursor over text to hand
+        text.setCursor(Cursor.HAND);
+        rect.setOnMousePressed((MouseEvent me) -> {
+            // change of mouse's x and y values
+            final StackPane com = makeClearFlowerRect(command, color, width, height);
             com.setTranslateX(x);
             com.setTranslateY(y);
             com.setAccessibleText(command);
@@ -607,6 +658,76 @@ public class gui extends Application {
         text.setCursor(Cursor.HAND);
         //sets cursor over colorchooser to hand
         colorPicker.setCursor(Cursor.HAND);
+        rect.setOnMouseDragged((MouseEvent me) -> {
+            current = rect;
+            // change of mouse's x and y values
+            double dragX = me.getSceneX() - dragAnchor.getX();
+            double dragY = me.getSceneY() - dragAnchor.getY();
+
+            double newXPosition = initX + dragX; // delta of rectangle
+            newXPosition -= newXPosition % tick; // coarse movement "snap2grid"
+            double newYPosition = initY + dragY; // delta of rectangle
+            newYPosition -= newYPosition % tick; // coarse movement "snap2grid"
+
+            // check that the rectangle is not moving outside the bounds of the window before
+            //      changing the rectangles position
+            if ((newXPosition >= (rect_width + 40)) &&
+                    (newXPosition <= (window_width - width))) {
+                rect.setTranslateX(newXPosition);
+            }
+            if ((newYPosition >= 0) &&
+                    (newYPosition <= window_height - height)) {
+                rect.setTranslateY(newYPosition);
+            }
+        });
+
+        rect.setOnMousePressed((MouseEvent me) -> {
+            //stores initial x and y value of the x for the next time the rectangle is dragged
+            current = rect;
+            initX = rect.getTranslateX();
+            initY = rect.getTranslateY();
+            dragAnchor = new Point2D(
+                    me.getSceneX(), me.getSceneY()
+            );
+        });
+
+        rect.setOnMouseReleased((MouseEvent me) -> {
+            current = null;
+        });
+
+        rect.setOnMouseDragOver((MouseEvent me) -> {
+            rect.setOnMouseReleased((MouseEvent mouseEvent) -> {
+                if (current != null){
+                    current.setTranslateY(rect.getTranslateY() + rect_height);
+                    current.setTranslateX(rect.getTranslateX() + 20);
+                }
+            });
+        });
+        code.add(rect);
+        return rect;
+    }
+
+    private StackPane makeClearFlowerRect(final String command, final Color color, final int
+            width, final int height) {
+
+        final Rectangle inner = new Rectangle(width, height);
+        inner.setFill(color);
+        inner.setStroke(color.darker());
+        final StackPane rect = new StackPane();
+        HBox label = new HBox();
+        label.setAlignment(Pos.CENTER);
+
+        final TextField text = new TextField();
+        text.setMaxWidth(50);
+
+        label.getChildren().addAll(new Label(command), text);
+        rect.getChildren().addAll(inner, label);
+
+        // sets cursor over rectangle to hand
+        rect.setCursor(Cursor.HAND);
+        //sets cursor over text to hand
+        text.setCursor(Cursor.HAND);
+        //sets cursor over colorchooser to hand
         rect.setOnMouseDragged((MouseEvent me) -> {
             current = rect;
             // change of mouse's x and y values
